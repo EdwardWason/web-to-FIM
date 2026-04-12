@@ -1,5 +1,7 @@
 # 腾讯 ima 笔记 API 配置指南
 
+> ⚠️ **重要说明**：ima 是腾讯提供的**云端笔记服务**，通过 API 接口创建和管理笔记，**不需要安装本地客户端**。只需获取 API 凭证即可使用。
+
 ## 获取凭证
 
 ### 步骤 1: 访问 ima 开放平台
@@ -9,11 +11,13 @@
 ### 步骤 2: 登录并获取凭证
 
 1. 使用 QQ 或微信扫码登录
-2. 页面会显示：
+2. 在「Agent 接口」页面获取凭证：
    - **Client ID**: 应用标识
    - **Api Key**: API 密钥
 
 ### 步骤 3: 复制凭证
+
+登录后页面会显示你的凭证，格式类似：
 
 ```text
 Client ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -37,7 +41,7 @@ export IMA_API_KEY="your_api_key"
 ### 验证配置
 
 ```python
-from ima_client import IMAClient
+from scripts.ima_client import IMAClient
 
 client = IMAClient()
 if client.test_connection():
@@ -50,11 +54,18 @@ else:
 
 | 功能 | API 端点 | 说明 |
 |------|----------|------|
+| 测试连接 | `GET /v1/notebook/list` | 验证凭证是否有效 |
 | 创建笔记 | `POST /v1/note/create` | 在默认笔记本创建新笔记 |
 | 更新笔记 | `POST /v1/note/update` | 向现有笔记追加内容 |
 | 读取笔记 | `GET /v1/note/get` | 获取笔记详情 |
 | 搜索笔记 | `POST /v1/note/search` | 按关键词搜索笔记 |
-| 列出笔记本 | `GET /v1/notebook/list` | 获取笔记本列表 |
+
+## API 基础信息
+
+- **API 地址**: `https://ima.im.qq.com/openapi`
+- **认证方式**: Client-ID + Api-Key 请求头
+- **数据格式**: JSON
+- **无需本地客户端**: 所有操作通过云端 API 完成
 
 ## 安全注意事项
 

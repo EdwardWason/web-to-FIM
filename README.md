@@ -25,7 +25,7 @@ Convert any web URL or local file to structured Markdown and save to Feishu Clou
 |--------|------|-------------|
 | **Markdown 文件** | 生成本地 `.md` 文件 | 无 / None |
 | **飞书云文档** | 创建飞书云端文档 | `FEISHU_APP_ID` + `FEISHU_APP_SECRET` |
-| **腾讯 ima 笔记** | 创建 ima 知识库笔记 | `IMA_CLIENT_ID` + `IMA_API_KEY` |
+| **腾讯 ima 笔记** | 创建 ima 知识库笔记（**云端 API**，无需本地客户端） | `IMA_CLIENT_ID` + `IMA_API_KEY` |
 
 ## 安装说明 | Installation
 

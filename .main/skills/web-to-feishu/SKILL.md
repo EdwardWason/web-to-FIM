@@ -41,7 +41,7 @@ description: >
 |--------|---------|------|
 | Markdown 文件 | 无 | 默认选项，始终生成 |
 | 飞书云文档 | `FEISHU_APP_ID` + `FEISHU_APP_SECRET` | 参考 `references/feishu-setup.md` |
-| 腾讯 ima | `IMA_CLIENT_ID` + `IMA_API_KEY` | 参考 `references/ima-setup.md` |
+| 腾讯 ima | `IMA_CLIENT_ID` + `IMA_API_KEY` | **云端 API**，无需本地客户端，参考 `references/ima-setup.md` |
 
 ## 安全配置
 
