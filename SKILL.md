@@ -1,17 +1,26 @@
 ---
-name: web-to-feishu
-label: 网页内容转 Obsidian/飞书/IMA 文档
+name: web-to-FIM
+label: 网页内容转 Markdown/飞书/IMA
 description: >
   将任意网页链接或本地文件一键转为结构化 Markdown，并保存到 Obsidian Vault、飞书云文档或腾讯 IMA 笔记。
   支持的信源：(1) X/Twitter 推文、长文 Article、Thread 线程；(2) 微信公众号文章；
   (3) 小红书笔记；(4) 微博；(5) YouTube 视频；(6) 任意 HTML 网页；
   (7) 本地文件：PDF、Word、PPT、Excel、图片、音频等。
   工作流：自动识别 URL/文件类型 → 路由到最佳抓取工具 → 结构化 Markdown → 选择性保存到 Obsidian/飞书/IMA。
-  触发词：转文档、抓网页存飞书、网页转文档、web to feishu、url转文档、文件转飞书、存到ima、存到obsidian。
+  触发词：转文档、抓网页存飞书、网页转文档、web to feishu、url转文档、文件转飞书、存到ima、存到obsidian、web to fim。
   当用户提供任意 URL 或本地文件并要求转存为文档时触发。
 ---
 
-# 网页内容转 Obsidian/飞书/IMA 文档
+# Web-to-FIM | 网页内容转 Markdown/飞书/IMA
+
+## 🤖 AI 时代必备的信息库基础技能
+
+在 AI 时代，无论是使用 **OpenClaw**、**Hermes Agent**，还是实践 **Obsidian + LLM** 的信息管理方法论，**一键入库、人机共用**的 AI 信息库搭建都是必备的基础设施。
+
+**Web-to-FIM** 就是这样一个基础技能：它将任意网络内容一键转换为结构化 Markdown，并同步到：
+- 📝 **Obsidian Vault** - 本地个人知识库，带 frontmatter
+- 📚 **飞书云文档** - 云端团队协作
+- 🧠 **腾讯 IMA 笔记** - AI 原生知识库
 
 将任意网页链接或本地文件一键转为结构化 Markdown，并保存到 Obsidian Vault、飞书云文档或腾讯 IMA 笔记。
 

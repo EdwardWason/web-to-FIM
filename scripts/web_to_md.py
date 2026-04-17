@@ -24,7 +24,8 @@ from pathlib import Path
 
 SKILLS_DIR = os.path.expanduser("~/.aily/workspace/skills")
 TWEET_FETCHER = os.path.join(SKILLS_DIR, "x-tweet-fetcher/scripts/fetch_tweet.py")
-TWEET_TO_MD = os.path.join(SKILLS_DIR, "web-to-feishu/scripts/tweet_to_md.py")
+SCRIPT_DIR = Path(__file__).parent
+TWEET_TO_MD = str(SCRIPT_DIR / "tweet_to_md.py")
 
 
 def _run(cmd, check=True):
