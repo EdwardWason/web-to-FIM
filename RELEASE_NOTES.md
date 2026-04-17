@@ -1,5 +1,25 @@
 # Release Notes | 版本说明
 
+## v2.1.0 - 2026-04-17
+
+### 🎯 平台支持增强 | Platform Support Enhancement
+
+#### 1. Hermes Agent 完整支持 | Full Hermes Agent Support
+- 更新了 README.md，新增「适用平台」表格
+- 新增 Hermes Agent 详细安装说明
+- 强调技能同时支持 OpenClaw 和 Hermes Agent
+- 文档中明确标注双平台兼容性
+
+### 📚 文档更新 | Documentation Updates
+
+#### 2. README.md 优化
+- 新增「适用平台」章节，列出 OpenClaw、Hermes Agent、独立使用三种方式
+- 安装说明分为「安装到 OpenClaw」和「安装到 Hermes Agent」两部分
+- 分别提供 Releases 安装和手动安装的详细步骤
+- 完善了 Hermes Agent 技能目录路径说明
+
+---
+
 ## v2.0.0 - 2026-04-17
 
 ### 🚀 重大升级 | Major Upgrade

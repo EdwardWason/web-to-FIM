@@ -14,6 +14,16 @@
 
 ---
 
+## 🎯 适用平台 | Supported Platforms
+
+| 平台 | 说明 |
+|------|------|
+| **OpenClaw** | 通过 Skills 管理界面安装使用 |
+| **Hermes Agent** | 通过 Skills 目录安装，在 Agent 对话中调用 |
+| **独立使用** | 直接运行 Python 脚本 |
+
+---
+
 ## ✨ 功能特性 | Features
 
 ### 支持的信源 | Supported Sources
@@ -76,6 +86,8 @@ python scripts/web_to_md.py --url "document.pdf" --output doc.md
 
 ### 方法一：通过 Releases 安装（推荐）| Method 1: Install via Releases (Recommended)
 
+#### 安装到 OpenClaw | Install to OpenClaw
+
 1. **下载技能压缩包 | Download Skill Package**：
    - 访问 [GitHub Releases](https://github.com/EdwardWason/web-to-FIM/releases)
    - 下载最新版本的 `web-to-FIM.zip` 文件
@@ -93,7 +105,26 @@ python scripts/web_to_md.py --url "document.pdf" --output doc.md
    - 填写所需的环境变量
    - 保存配置
 
-### 方法二：手动安装到 OpenClaw | Method 2: Manual Installation to OpenClaw
+#### 安装到 Hermes Agent | Install to Hermes Agent
+
+1. **下载技能压缩包 | Download Skill Package**：
+   - 访问 [GitHub Releases](https://github.com/EdwardWason/web-to-FIM/releases)
+   - 下载最新版本的 `web-to-FIM.zip` 文件
+
+2. **安装到 Hermes Agent | Install to Hermes Agent**：
+   - 解压 `web-to-FIM.zip`
+   - 将解压后的整个目录复制到 Hermes Agent 的 Skills 目录：
+     - Windows：`C:\Users\你的用户名\.hermes\skills\`
+     - 或参考 Hermes Agent 文档中的技能目录位置
+   - 重启 Hermes Agent 加载新技能
+
+3. **配置环境变量 | Configure Environment Variables**：
+   - 在 Hermes Agent 的配置文件或环境变量中设置所需的凭证
+   - 或创建 `.env` 文件在技能目录下
+
+### 方法二：手动安装 | Method 2: Manual Installation
+
+#### 安装到 OpenClaw
 
 1. **克隆仓库 | Clone Repository**：
    ```bash
@@ -118,6 +149,32 @@ python scripts/web_to_md.py --url "document.pdf" --output doc.md
 
 4. **配置环境变量 | Configure Environment Variables**：
    - 在 OpenClaw 中配置环境变量，或参考 `references/` 目录下的配置指南
+
+#### 安装到 Hermes Agent
+
+1. **克隆仓库 | Clone Repository**：
+   ```bash
+   git clone https://github.com/EdwardWason/web-to-FIM.git
+   cd web-to-FIM
+   ```
+
+2. **复制技能到 Hermes Agent | Copy Skill to Hermes Agent**：
+   - Windows：
+     ```bash
+     robocopy ".main\skills\web-to-FIM" "C:\Users\你的用户名\.hermes\skills\web-to-FIM" /E
+     ```
+   - macOS/Linux：
+     ```bash
+     cp -r .main/skills/web-to-FIM ~/.hermes/skills/
+     ```
+
+3. **安装依赖 | Install Dependencies**：
+   ```bash
+   pip install requests python-dotenv
+   ```
+
+4. **配置环境变量 | Configure Environment Variables**：
+   - 在 Hermes Agent 配置中设置环境变量，或参考 `references/` 目录下的配置指南
 
 ---
 
