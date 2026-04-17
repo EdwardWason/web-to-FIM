@@ -5,6 +5,8 @@ Web Content → Structured Markdown Converter (Unified Entry)
 Auto-detects URL type and routes to the appropriate converter:
   - x.com / twitter.com → x-tweet-fetcher + tweet_to_md.py
   - mp.weixin.qq.com    → markitdown (WeChat plugin)
+  - xiaohongshu.com     → markitdown (Xiaohongshu plugin)
+  - weibo.com           → markitdown (generic)
   - youtube.com         → markitdown (YouTube support)
   - Other URLs          → markitdown (generic HTML)
   - Local files         → markitdown (PDF/DOCX/PPTX/XLSX/Images/Audio/etc.)
@@ -39,6 +41,10 @@ def _detect_source(url_or_path: str) -> str:
         return "twitter"
     if "mp.weixin.qq.com" in lower:
         return "wechat"
+    if "weibo.com" in lower:
+        return "weibo"
+    if "xiaohongshu.com" in lower or "xhslink.com" in lower:
+        return "xiaohongshu"
     if "youtube.com" in lower or "youtu.be" in lower:
         return "youtube"
     if lower.startswith("http://") or lower.startswith("https://"):

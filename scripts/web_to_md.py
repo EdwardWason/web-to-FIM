@@ -39,6 +39,10 @@ def _detect_source(url_or_path: str) -> str:
         return "twitter"
     if "mp.weixin.qq.com" in lower:
         return "wechat"
+    if "weibo.com" in lower:
+        return "weibo"
+    if "xiaohongshu.com" in lower or "xhslink.com" in lower:
+        return "xiaohongshu"
     if "youtube.com" in lower or "youtu.be" in lower:
         return "youtube"
     if lower.startswith("http://") or lower.startswith("https://"):

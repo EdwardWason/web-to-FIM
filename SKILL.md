@@ -1,18 +1,19 @@
 ---
 name: web-to-feishu
-label: 网页内容转飞书/ima文档
+label: 网页内容转 Obsidian/飞书/IMA 文档
 description: >
-  将任意网页链接或本地文件一键转为结构化 Markdown，并保存到飞书云文档或腾讯 ima 笔记。
+  将任意网页链接或本地文件一键转为结构化 Markdown，并保存到 Obsidian Vault、飞书云文档或腾讯 IMA 笔记。
   支持的信源：(1) X/Twitter 推文、长文 Article、Thread 线程；(2) 微信公众号文章；
-  (3) YouTube 视频；(4) 任意 HTML 网页；(5) 本地文件：PDF、Word、PPT、Excel、图片、音频等。
-  工作流：自动识别 URL/文件类型 → 路由到最佳抓取工具 → 结构化 Markdown → 选择性保存到飞书/ima。
-  触发词：转文档、抓网页存飞书、网页转文档、web to feishu、url转文档、文件转飞书、存到ima。
+  (3) 小红书笔记；(4) 微博；(5) YouTube 视频；(6) 任意 HTML 网页；
+  (7) 本地文件：PDF、Word、PPT、Excel、图片、音频等。
+  工作流：自动识别 URL/文件类型 → 路由到最佳抓取工具 → 结构化 Markdown → 选择性保存到 Obsidian/飞书/IMA。
+  触发词：转文档、抓网页存飞书、网页转文档、web to feishu、url转文档、文件转飞书、存到ima、存到obsidian。
   当用户提供任意 URL 或本地文件并要求转存为文档时触发。
 ---
 
-# 网页内容转飞书/ima文档
+# 网页内容转 Obsidian/飞书/IMA 文档
 
-将任意网页链接或本地文件一键转为结构化 Markdown，并保存到飞书云文档或腾讯 ima 笔记。
+将任意网页链接或本地文件一键转为结构化 Markdown，并保存到 Obsidian Vault、飞书云文档或腾讯 IMA 笔记。
 
 ## 支持的信源
 
@@ -20,6 +21,8 @@ description: >
 |------|---------|---------|
 | X/Twitter | `x.com` / `twitter.com` | x-tweet-fetcher |
 | 微信公众号 | `mp.weixin.qq.com` | markitdown-plus |
+| 小红书 | `xiaohongshu.com` / `xhslink.com` | markitdown-plus |
+| 微博 | `weibo.com` | markitdown-plus |
 | YouTube | `youtube.com` / `youtu.be` | markitdown-plus |
 | 任意网页 | 其他 `http(s)://` 链接 | markitdown-plus |
 
@@ -39,9 +42,19 @@ description: >
 
 | 目的地 | 环境变量 | 说明 |
 |--------|---------|------|
-| Markdown 文件 | 无 | 默认选项，始终生成 |
+| Obsidian Vault | 无 | 本地保存到 `E:\Obsidian\md\inbox`，带 frontmatter |
 | 飞书云文档 | `FEISHU_APP_ID` + `FEISHU_APP_SECRET` | 云端服务，参考 `references/feishu-setup.md` |
 | 腾讯 ima | `IMA_CLIENT_ID` + `IMA_API_KEY` | **云端 API**，无需本地客户端，参考 `references/ima-setup.md` |
+
+## 一键保存到所有目的地
+
+使用 `web_to_all.py` 一键转换并保存到 Obsidian/飞书/IMA：
+
+```bash
+python3 scripts/web_to_all.py --url "<url_or_path>"
+python3 scripts/web_to_all.py --url "<url>" --title "自定义标题"
+python3 scripts/web_to_all.py --url "<url>" --no-feishu --no-ima  # 仅保存 Obsidian
+```
 
 ## 安全配置
 

@@ -24,36 +24,6 @@ Client ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 Api Key: ima_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-## API 信息
-
-### 端点
-
-```
-https://ima.qq.com/openapi/note/v1
-```
-
-### 认证方式
-
-请求头中包含以下两个字段：
-
-| 请求头字段 | 对应环境变量 | 说明 |
-|-----------|-------------|------|
-| `ima-openapi-clientid` | `IMA_CLIENT_ID` | 客户端 ID |
-| `ima-openapi-apikey` | `IMA_API_KEY` | API 密钥 |
-
-### 响应格式
-
-```json
-{
-  "code": 0,
-  "msg": "success",
-  "data": { ... }
-}
-```
-
-- `code == 0` 表示成功
-- `code != 0` 表示失败，错误信息在 `msg` 中
-
 ## 本地配置
 
 ### 设置环境变量
@@ -82,13 +52,20 @@ else:
 
 ## ima API 功能概览
 
-| 功能 | API 端点 | 方法 | 说明 |
-|------|----------|------|------|
-| 测试连接 | `/note/list` | POST | 验证凭证是否有效 |
-| 创建笔记 | `/note/create` | POST | 在默认笔记本创建新笔记 |
-| 更新笔记 | `/note/update` | POST | 向现有笔记追加内容 |
-| 读取笔记 | `/note/get` | GET | 获取笔记详情 |
-| 搜索笔记 | `/note/search` | POST | 按关键词搜索笔记 |
+| 功能 | API 端点 | 说明 |
+|------|----------|------|
+| 测试连接 | `GET /v1/notebook/list` | 验证凭证是否有效 |
+| 创建笔记 | `POST /v1/note/create` | 在默认笔记本创建新笔记 |
+| 更新笔记 | `POST /v1/note/update` | 向现有笔记追加内容 |
+| 读取笔记 | `GET /v1/note/get` | 获取笔记详情 |
+| 搜索笔记 | `POST /v1/note/search` | 按关键词搜索笔记 |
+
+## API 基础信息
+
+- **API 地址**: `https://ima.im.qq.com/openapi`
+- **认证方式**: Client-ID + Api-Key 请求头
+- **数据格式**: JSON
+- **无需本地客户端**: 所有操作通过云端 API 完成
 
 ## 安全注意事项
 
