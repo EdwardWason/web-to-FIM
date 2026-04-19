@@ -1,5 +1,40 @@
 # Release Notes | 版本说明
 
+## v2.2.0 - 2026-04-19
+
+### 🔒 安全与合规增强 | Security & Compliance Enhancement
+
+本次更新参考 ClawHub 社区最佳实践，对技能进行全面优化：
+
+#### 1. ClawHub 元数据完善
+- **新增 `_meta.json`**：包含完整的技能元数据
+- **版本同步**：v2.2.0，与 SKILL.md 完全一致
+- **依赖声明**：明确列出 `python3`、`markitdown`、`requests`、`python-dotenv`
+- **环境变量声明**：`FEISHU_APP_ID`, `FEISHU_APP_SECRET`, `IMA_CLIENT_ID`, `IMA_API_KEY`, `OBSIDIAN_VAULT_PATH`
+- **文件操作声明**：明确读写范围，提高透明度
+- **安全说明**：列出安全设计原则
+
+#### 2. 跨平台兼容性提升
+- **Obsidian Vault 路径配置**：新增 `OBSIDIAN_VAULT_PATH` 环境变量
+- **Windows 默认**：`E:\Obsidian\md\inbox`
+- **macOS/Linux 默认**：`~/Obsidian/inbox`
+- **动态路径检测**：自动根据操作系统选择默认路径
+- **用户可自定义**：完全由用户控制保存位置
+
+#### 3. 文档增强
+- **安全声明章节**：详细说明安全设计原则
+- **完整依赖列表**：包含安装命令和用途说明
+- **跨平台配置指南**：Windows/macOS/Linux 三平台配置示例
+- **x-tweet-fetcher 可选依赖**：明确标记为可选，不影响核心功能
+
+#### 4. 代码改进
+- **`get_obsidian_vault_path()`**：新增函数处理跨平台路径
+- **Path.expanduser()**：支持 `~` 开头的用户目录路径
+- **环境变量优先级**：环境变量 > 默认值
+- **向后兼容**：保持原有默认路径不变
+
+---
+
 ## v2.1.0 - 2026-04-17
 
 ### 🎯 平台支持增强 | Platform Support Enhancement

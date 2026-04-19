@@ -1,8 +1,25 @@
 {
-  "name": "web-to-feishu",
-  "version": "1.0.0",
-  "description": "Convert web content to Feishu/ima documents",
+  "name": "web-to-FIM",
+  "version": "2.2.0",
+  "description": "将任意网页链接或本地文件一键转为结构化 Markdown，并保存到 Obsidian Vault、飞书云文档或腾讯 IMA 笔记。支持 OpenClaw 和 Hermes Agent 双平台。",
   "author": "EdwardWason",
-  "homepage": "https://github.com/EdwardWason/web-to-feishu",
-  "tags": ["feishu", "ima", "web", "markdown", "twitter", "wechat"]
+  "homepage": "https://github.com/EdwardWason/web-to-FIM",
+  "tags": ["productivity", "ai-information-management", "markdown", "feishu", "ima", "obsidian", "twitter", "wechat", "weibo", "xiaohongshu", "youtube"],
+  "platforms": ["OpenClaw", "Hermes Agent"],
+  "requires": {
+    "binaries": ["python3"],
+    "pip_packages": ["markitdown", "requests", "python-dotenv"],
+    "env_vars": ["FEISHU_APP_ID", "FEISHU_APP_SECRET", "IMA_CLIENT_ID", "IMA_API_KEY", "OBSIDIAN_VAULT_PATH"]
+  },
+  "file_operations": {
+    "writes": ["Obsidian vault directory (configurable)", "temporary markdown files"],
+    "reads": ["input URLs", "local files for conversion"]
+  },
+  "security_notes": [
+    "所有 API 凭证通过环境变量配置，无硬编码",
+    "仅在用户明确指定时写入文件",
+    "支持选择性禁用飞书/IMA 功能",
+    "Obsidian Vault 路径完全由用户控制",
+    "不读取任何未经授权的用户配置文件"
+  ]
 }

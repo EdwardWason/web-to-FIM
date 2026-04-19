@@ -51,9 +51,27 @@ description: >
 
 | 目的地 | 环境变量 | 说明 |
 |--------|---------|------|
-| Obsidian Vault | 无 | 本地保存到 `E:\Obsidian\md\inbox`，带 frontmatter |
+| Obsidian Vault | `OBSIDIAN_VAULT_PATH` | 本地保存到指定目录，带 frontmatter（默认：`E:\Obsidian\md\inbox`） |
 | 飞书云文档 | `FEISHU_APP_ID` + `FEISHU_APP_SECRET` | 云端服务，参考 `references/feishu-setup.md` |
-| 腾讯 ima | `IMA_CLIENT_ID` + `IMA_API_KEY` | **云端 API**，无需本地客户端，参考 `references/ima-setup.md` |
+| 腾讯 IMA | `IMA_CLIENT_ID` + `IMA_API_KEY` | **云端 API**，无需本地客户端，参考 `references/ima-setup.md` |
+
+### Obsidian Vault 路径配置
+跨平台支持，通过环境变量 `OBSIDIAN_VAULT_PATH` 配置：
+
+```bash
+# Windows (PowerShell)
+$env:OBSIDIAN_VAULT_PATH = "C:\Users\YourName\Obsidian\Vault\inbox"
+
+# Windows (CMD)
+set OBSIDIAN_VAULT_PATH=C:\Users\YourName\Obsidian\Vault\inbox
+
+# macOS/Linux
+export OBSIDIAN_VAULT_PATH=~/Obsidian/Vault/inbox
+```
+
+如果未设置，默认使用：
+- Windows: `E:\Obsidian\md\inbox`
+- macOS/Linux: `~/Obsidian/inbox`
 
 ## 一键保存到所有目的地
 
@@ -150,11 +168,53 @@ python scripts/ima_client.py --action test
 | 飞书凭证无效 | 检查 `FEISHU_APP_ID` 和 `FEISHU_APP_SECRET` |
 | ima 凭证无效 | 检查 `IMA_CLIENT_ID` 和 `IMA_API_KEY` |
 
-## 依赖
+## 依赖与安装
 
-| 依赖 | 安装 |
-|------|------|
-| markitdown-plus | `pip install markitdown` |
-| x-tweet-fetcher | 克隆到 `~/.aily/workspace/skills/x-tweet-fetcher` |
-| requests | `pip install requests` |
-| python-dotenv | `pip install python-dotenv` |
+### 完整依赖列表
+
+| 依赖 | 安装命令 | 说明 |
+|------|---------|------|
+| markitdown | `pip install markitdown` | 网页转 Markdown 核心库 |
+| requests | `pip install requests` | HTTP 请求 |
+| python-dotenv | `pip install python-dotenv` | 环境变量管理 |
+| x-tweet-fetcher | 克隆到 `~/.aily/workspace/skills/x-tweet-fetcher` | X/Twitter 专用抓取（可选） |
+
+### 一键安装所有依赖
+
+```bash
+# 安装 Python 依赖
+pip install markitdown requests python-dotenv
+```
+
+### x-tweet-fetcher（可选，仅用于 X/Twitter）
+```bash
+# 克隆到技能目录
+cd ~/.aily/workspace/skills
+git clone https://github.com/EdwardWason/x-tweet-fetcher.git
+```
+
+如果不安装 x-tweet-fetcher，X/Twitter 链接将使用 markitdown 直接处理。
+
+---
+
+## 安全声明
+
+### 🔒 安全设计原则
+
+1. **凭证安全
+   - 所有 API 凭证通过环境变量配置，**无硬编码**
+   - 支持 `FEISHU_APP_ID, FEISHU_APP_SECRET, IMA_CLIENT_ID, IMA_API_KEY
+
+2. **文件操作
+   - 仅在用户明确指定时写入文件
+   - Obsidian Vault 路径完全可控
+   - 支持通过 `--no-feishu` / --no-ima` 选择性禁用功能
+
+3. **隐私保护
+   - 不读取任何未经授权的用户配置文件
+   - 所有网络请求仅针对用户提供的 URL
+   - 本地文件仅用于转换，不主动扫描
+
+4. **权限透明
+   - 文件写入范围：Obsidian Vault 目录、临时 Markdown 文件
+   - 文件读取范围：用户指定的 URL、本地输入文件

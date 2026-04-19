@@ -3,7 +3,7 @@
 Web Content → Markdown → Obsidian/Feishu/IMA
 
 Convert any web URL or local file to Markdown, then:
-1. Save to Obsidian Vault (E:\Obsidian\md\inbox)
+1. Save to Obsidian Vault (configurable via OBSIDIAN_VAULT_PATH)
 2. Save to Feishu Cloud Document (optional)
 3. Save to Tencent IMA Note (optional)
 
@@ -26,7 +26,28 @@ from feishu_client import FeishuClient
 from ima_client import IMAClient
 
 
-OBSIDIAN_VAULT = r"E:\Obsidian\md\inbox"
+def get_obsidian_vault_path() -> Path:
+    """
+    Get Obsidian Vault path from environment variable or use default.
+    
+    Environment variable: OBSIDIAN_VAULT_PATH
+    
+    Defaults:
+    - Windows: E:\Obsidian\md\inbox
+    - macOS/Linux: ~/Obsidian/inbox
+    """
+    env_path = os.environ.get("OBSIDIAN_VAULT_PATH")
+    if env_path:
+        return Path(env_path).expanduser()
+    
+    # Default paths by OS
+    if sys.platform.startswith("win"):
+        return Path(r"E:\Obsidian\md\inbox")
+    else:
+        return Path.home() / "Obsidian" / "inbox"
+
+
+OBSIDIAN_VAULT = get_obsidian_vault_path()
 
 
 def save_to_obsidian(content: str, title: str, url: str = None) -> str:
