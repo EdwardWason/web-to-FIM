@@ -17,43 +17,73 @@ import sys
 from pathlib import Path
 
 
-_SECTION_HEADERS = [
-    "所有人都在追模型，但跑道选错了",
-    "一个被忽视的行业真相",
-    "不是「接入」，是「深度适配」",
-    "真人短剧赛道，被悄悄解锁了",
-    "从抽卡时代到工厂时代",
-    "两种模式，两种人。",
-    "商业价值",
-    "案例背景",
-    "技术突破点",
-]
+# 通用启发式规则：识别推文长文中的段落标题
+# 不再硬编码特定推文的标题，而是基于文本特征判断
 
-_SUBSECTION_PREFIXES = ["1.", "2.", "3.", "4.", "5."]
-_EMOJI_HEADERS = ["🎁", "💡", "📊", "🎬", "✅", "⚠️", "🔑", "🎯"]
+# Emoji 范围（覆盖常见 Emoji，无需逐个列举）
+_EMOJI_PATTERN = re.compile(
+    "[\U0001F300-\U0001F9FF"  # 符号和象形文字
+    "\U00002600-\U000027BF"   # 杂项符号
+    "\U0001F600-\U0001F64F"   # 表情符号
+    "\U0001F680-\U0001F6FF"   # 交通和地图符号
+    "]"
+)
+
+# 数字编号前缀（如 "1. " "2. " "（1）" 等）
+_NUMBERED_PREFIX = re.compile(r'^(\d+[\.\)、）]\s+)')
+
+# 中文标题结尾标点（如果是标题，通常不以这些结尾）
+_SENTENCE_ENDINGS = "。！？；，、…～~"
 
 
 def _is_section_header(line: str) -> bool:
+    """通用判断：是否为段落标题（## 级别）"""
     stripped = line.strip()
-    if stripped in _SECTION_HEADERS:
+    if not stripped or len(stripped) > 80:
+        return False
+
+    # 规则1: 数字编号开头（1. 2. 3. 等）
+    if _NUMBERED_PREFIX.match(stripped):
         return True
-    if any(stripped.startswith(p) for p in _SUBSECTION_PREFIXES) and len(stripped) < 80:
-        if re.match(r'^[1-5]\.\s+\S', stripped):
-            return True
-    if any(stripped.startswith(e) for e in _EMOJI_HEADERS) and len(stripped) < 60:
+
+    # 规则2: Emoji 开头 + 短行
+    if _EMOJI_PATTERN.match(stripped[0]) and len(stripped) < 60:
         return True
+
+    # 规则3: 短行（<30字符）+ 不以句末标点结尾 + 不是完整句子
+    # 这类行通常是标题（如"商业价值"、"案例背景"）
+    if len(stripped) < 30 and stripped[-1] not in _SENTENCE_ENDINGS:
+        # 排除纯数字、纯标点
+        if re.match(r'^[\u4e00-\u9fff\w]', stripped) and not stripped.endswith('】'):
+            # 进一步检查：标题通常不含逗号/顿号（除非是复合标题）
+            if '，' not in stripped and '、' not in stripped:
+                return True
+
     return False
 
 
 def _is_subsection_header(line: str) -> bool:
+    """通用判断：是否为子段落标题（### 级别）
+
+    子标题特征：
+    - 包含特定关键词模式（如"XXX模式"、"XXX引擎"、"XXX智能体"）
+    - 短行（<80字符）
+    - 不以句末标点结尾
+    """
     stripped = line.strip()
-    key_phrases = [
-        "更深层的矛盾", "镜头组叙事", "纳米空间引擎", "脚本智能体",
-        "视觉导演智能体", "宫格生视频模式", "多参生视频模式",
-    ]
-    for phrase in key_phrases:
-        if phrase in stripped and len(stripped) < 80:
+    if not stripped or len(stripped) > 80:
+        return False
+
+    # 不以句末标点结尾
+    if stripped[-1] in _SENTENCE_ENDINGS:
+        return False
+
+    # 规则: 包含"模式""引擎""智能体""系统""框架""流程""策略""方法"等技术性名词后缀
+    tech_suffixes = ["模式", "引擎", "智能体", "系统", "框架", "流程", "策略", "方法", "方案", "架构"]
+    for suffix in tech_suffixes:
+        if suffix in stripped and len(stripped) < 60:
             return True
+
     return False
 
 

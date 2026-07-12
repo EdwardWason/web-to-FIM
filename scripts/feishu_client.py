@@ -108,18 +108,22 @@ class FeishuClient:
         return {
             "document_id": document_id,
             "title": title,
-            "url": f"https://.feishu.cn/docx/{document_id}"
+            "url": f"https://feishu.cn/docx/{document_id}"
         }
 
     def _insert_blocks(self, document_id: str, content_md: str) -> None:
-        """将 Markdown 内容插入文档"""
+        """将 Markdown 内容插入文档（分批，每批最多 50 个 blocks）"""
         blocks = self._md_to_blocks(content_md)
-
         url = f"{self.BASE_URL}/docx/v1/documents/{document_id}/blocks/{document_id}/children"
-        payload = {"children": blocks, "index": -1}
 
-        resp = requests.post(url, headers=self._headers(), json=payload, timeout=30)
-        resp.raise_for_status()
+        BATCH = 50
+        for i in range(0, len(blocks), BATCH):
+            batch = blocks[i:i + BATCH]
+            payload = {"children": batch}
+            resp = requests.post(url, headers=self._headers(), json=payload, timeout=30)
+            if resp.status_code != 200:
+                print(f"  [Feishu debug] batch {i//BATCH+1} status={resp.status_code}, body={resp.text[:500]}", flush=True)
+            resp.raise_for_status()
 
     def _md_to_blocks(self, md: str) -> List[Dict]:
         """将 Markdown 转换为飞书文档块格式"""
@@ -137,10 +141,10 @@ class FeishuClient:
                     code_content = []
                 else:
                     blocks.append({
-                        "block_type": 2,
+                        "block_type": 14,
                         "code": {
-                            "elements": [{"type": "text_run", "text_run": {"content": "\n".join(code_content)}}],
-                            "language": 1
+                            "elements": [{"text_run": {"content": "\n".join(code_content)}}],
+                            "style": {"language": 1}
                         }
                     })
                     in_code_block = False
@@ -155,7 +159,7 @@ class FeishuClient:
                 blocks.append({
                     "block_type": 3,
                     "heading1": {
-                        "elements": [{"type": "text_run", "text_run": {"content": stripped[2:]}}],
+                        "elements": [{"text_run": {"content": stripped[2:]}}],
                         "style": {}
                     }
                 })
@@ -163,7 +167,7 @@ class FeishuClient:
                 blocks.append({
                     "block_type": 4,
                     "heading2": {
-                        "elements": [{"type": "text_run", "text_run": {"content": stripped[3:]}}],
+                        "elements": [{"text_run": {"content": stripped[3:]}}],
                         "style": {}
                     }
                 })
@@ -171,7 +175,7 @@ class FeishuClient:
                 blocks.append({
                     "block_type": 5,
                     "heading3": {
-                        "elements": [{"type": "text_run", "text_run": {"content": stripped[4:]}}],
+                        "elements": [{"text_run": {"content": stripped[4:]}}],
                         "style": {}
                     }
                 })
@@ -179,43 +183,30 @@ class FeishuClient:
                 blocks.append({
                     "block_type": 12,
                     "bullet": {
-                        "elements": [{"type": "text_run", "text_run": {"content": stripped[2:]}}],
+                        "elements": [{"text_run": {"content": stripped[2:]}}],
                         "style": {}
                     }
                 })
             elif stripped.startswith("> "):
                 blocks.append({
-                    "block_type": 11,
+                    "block_type": 15,
                     "quote": {
-                        "elements": [{"type": "text_run", "text_run": {"content": stripped[2:]}}],
+                        "elements": [{"text_run": {"content": stripped[2:]}}],
                         "style": {}
                     }
                 })
             elif stripped.startswith("!["):
-                match = re.match(r'!\[(.*?)\]\((.*?)\)', stripped)
-                if match:
-                    blocks.append({
-                        "block_type": 10,
-                        "image": {
-                            "uri": match.group(2)
-                        }
-                    })
+                # Image blocks require pre-uploaded token; skip for now
+                continue
             elif stripped:
                 blocks.append({
                     "block_type": 2,
                     "text": {
-                        "elements": [{"type": "text_run", "text_run": {"content": stripped}}],
+                        "elements": [{"text_run": {"content": stripped}}],
                         "style": {}
                     }
                 })
-            else:
-                blocks.append({
-                    "block_type": 2,
-                    "text": {
-                        "elements": [{"type": "text_run", "text_run": {"content": " "}}],
-                        "style": {}
-                    }
-                })
+            # Skip empty lines — don't create empty text blocks
 
         return blocks
 

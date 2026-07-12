@@ -5,6 +5,8 @@ Web Content → Structured Markdown Converter (Unified Entry)
 Auto-detects URL type and routes to the appropriate converter:
   - x.com / twitter.com → x-tweet-fetcher + tweet_to_md.py
   - mp.weixin.qq.com    → markitdown (WeChat plugin)
+  - xiaohongshu.com     → markitdown (Xiaohongshu plugin)
+  - weibo.com           → markitdown (generic)
   - youtube.com         → markitdown (YouTube support)
   - Other URLs          → markitdown (generic HTML)
   - Local files         → markitdown (PDF/DOCX/PPTX/XLSX/Images/Audio/etc.)
@@ -28,9 +30,13 @@ SCRIPT_DIR = Path(__file__).parent
 TWEET_TO_MD = str(SCRIPT_DIR / "tweet_to_md.py")
 
 
-def _run(cmd, check=True):
-    result = subprocess.run(cmd, capture_output=True, text=True, check=check)
-    return result.stdout.strip()
+def _run(cmd, check=True, timeout=120):
+    """运行子进程，默认 120 秒超时（x-tweet-fetcher 网络异常时防止永久挂起）"""
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=check, timeout=timeout)
+        return result.stdout.strip()
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"子进程超时（{timeout}秒）: {' '.join(cmd[:3])}...")
 
 
 def _detect_source(url_or_path: str) -> str:
@@ -106,6 +112,13 @@ def _convert_markitdown(url_or_path: str, output_path: str = None) -> str:
     result = md.convert(url_or_path)
     content = result.markdown
 
+    # 公众号反爬 fallback：markitdown 返回验证页（通常 <200 字符）
+    if "mp.weixin.qq.com" in url_or_path.lower() and len(content) < 200:
+        print("⚠️ markitdown returned anti-crawl page, trying mobile UA fallback...", file=sys.stderr)
+        content = _fetch_wechat_mobile(url_or_path)
+        if not content:
+            print("❌ Mobile UA fallback also failed. Use WebFetch or manual transcription.", file=sys.stderr)
+
     if output_path:
         out = Path(output_path)
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -114,6 +127,65 @@ def _convert_markitdown(url_or_path: str, output_path: str = None) -> str:
         print(f"✅ Markdown saved: {out} ({len(content)} chars)", file=sys.stderr)
 
     return content
+
+
+def _fetch_wechat_mobile(url: str) -> str:
+    """Fallback: fetch WeChat article with mobile UA to bypass anti-crawl.
+
+    改进版：保留图片、段落结构、引用块、代码块，而非纯文本提取。
+    """
+    try:
+        import requests
+    except ImportError:
+        return ""
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.38(0x1800262c) NetType/WIFI Language/zh_CN",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    }
+    try:
+        resp = requests.get(url, headers=headers, timeout=30)
+        resp.encoding = "utf-8"
+        html = resp.text
+
+        # 提取标题
+        title_match = re.search(r'<h1[^>]*class="rich_media_title"[^>]*>(.*?)</h1>', html, re.DOTALL)
+        title = title_match.group(1).strip() if title_match else "WeChat Article"
+
+        # 提取正文（js_content div）
+        match = re.search(r'id="js_content"[^>]*>(.*?)</div>\s*<script', html, re.DOTALL)
+        if not match:
+            return ""
+        content_html = match.group(1)
+
+        # 转换为 Markdown（保留图片、段落、引用、代码块）
+        md_parts = [f"# {title}\n"]
+
+        # 提取图片（data-src 或 src）
+        for img in re.finditer(r'<img[^>]*(?:data-src|src)="([^"]+)"', content_html):
+            img_url = img.group(1)
+            if img_url.startswith("//"):
+                img_url = "https:" + img_url
+            md_parts.append(f"\n![]({img_url})\n")
+
+        # 按段落分割（<p> 和 <section> 标签）
+        paragraphs = re.split(r'</?(?:p|section)[^>]*>', content_html)
+        for para in paragraphs:
+            # 去 HTML 标签但保留文本
+            text = re.sub(r"<[^>]+>", "", para)
+            text = re.sub(r"\s+", " ", text).strip()
+            if text and len(text) > 1:
+                # 检查是否为引用（<blockquote> 或 indent 类）
+                if "blockquote" in para or "js_blockquote" in para:
+                    md_parts.append(f"\n> {text}\n")
+                else:
+                    md_parts.append(f"\n{text}\n")
+
+        return "\n".join(md_parts)
+    except Exception as e:
+        print(f"⚠️ Mobile UA fetch failed: {e}", file=sys.stderr)
+        return ""
 
 
 def convert(url_or_path: str, output_path: str = None, replies: bool = False) -> str:
