@@ -24,6 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from web_to_md import convert as convert_to_md
+from web_to_md import extract_original_url
 from feishu_client import FeishuClient
 from ima_client import IMAClient
 
@@ -243,18 +244,20 @@ def save_to_ima(content: str, title: str, knowledge_base: str = None, source_url
 
 
 def _is_importable_url(url: str) -> bool:
-    """Check if URL is suitable for IMA import_urls (server-side fetch).
+    """Check if URL is suitable for IMA import_urls (server-side fetch)（v3.3.0 精细化路由）.
 
-    IMA import_urls supports:
-    - 微信公众号文章: mp.weixin.qq.com/s
-    - 普通网页: any http(s):// URL (except feishu wiki and X/Twitter)
+    IMA import_urls 适用（返回 True）:
+    - 微信公众号文章: mp.weixin.qq.com/s（IMA 自动识别，保留图片排版）
+    - 普通网页: 除排除项外的 http(s):// URL
 
-    Returns False for:
-    - feishu wiki URLs (require login auth, IMA can't fetch)
-    - X/Twitter URLs (must be transcribed per web-to-fim skill rules, not server-fetched)
+    IMA import_urls 不适用（返回 False）:
+    - feishu wiki URLs: 需登录认证，IMA 服务端无法抓取
+    - X/Twitter URLs: 必须逐字转录（web-to-fim 技能规则）
+    - GitHub URLs: IMA 抓取 HTML 页面效果差，改为纯文本笔记（v3.3.0 新增）
 
-    Rationale: X/Twitter content must be 逐字转录 per SKILL.md rules.
-    Server-side fetch via import_urls would not preserve the full thread/article structure.
+    Rationale:
+    - X/Twitter content must be 逐字转录 per SKILL.md rules.
+    - GitHub HTML 页面不是 markdown 源码，IMA 抓取后内容混乱，改为纯文本笔记存转录 MD。
     """
     if not url:
         return False
@@ -265,10 +268,40 @@ def _is_importable_url(url: str) -> bool:
     # X/Twitter 必须逐字转录（web-to-fim 技能规则），不用 IMA 服务端抓取
     if "x.com" in lower or "twitter.com" in lower:
         return False
-    # 公众号文章和普通网页都可以
+    # GitHub: IMA 抓取 HTML 页面效果差（非 markdown 源码），改为纯文本笔记（v3.3.0）
+    if "github.com" in lower:
+        return False
+    # 公众号文章和普通网页都可以（IMA 自动识别）
     if lower.startswith("http://") or lower.startswith("https://"):
         return True
     return False
+
+
+def _is_feishu_wiki(url: str) -> bool:
+    """判断 URL 是否为飞书 wiki（v3.3.0 新增）"""
+    if not url:
+        return False
+    lower = url.lower()
+    return "feishu.cn/wiki" in lower or "larkoffice.com/wiki" in lower
+
+
+def _fetch_feishu_wiki_via_webfetch(url: str) -> str:
+    """通过 WebFetch 抓取飞书 wiki 内容（v3.3.0 新增）
+
+    markitdown 无法处理飞书 wiki（需 JS 渲染 + 登录认证），
+    需通过 WebFetch 工具抓取。本函数仅返回提示信息，实际抓取由 AI 调用 WebFetch 工具完成。
+
+    在自动化流程中，AI 应该：
+    1. 识别飞书 wiki URL
+    2. 调用 WebFetch 抓取内容
+    3. 用 extract_original_url() 检查原文链接
+    4. 有可导入原文链接 → 抓取原文内容作为最终 MD
+    5. 无原文链接 → 用飞书 wiki 内容
+    """
+    raise NotImplementedError(
+        "飞书 wiki 需要通过 WebFetch 工具抓取，不能直接用 markitdown。"
+        "请在 AI 流程中识别飞书 wiki URL 后调用 WebFetch。"
+    )
 
 
 def main():

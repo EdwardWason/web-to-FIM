@@ -2,6 +2,17 @@
 
 本文件记录 web-to-fim 技能的版本演进。版本号遵循 [语义化版本](https://semver.org/)。
 
+## [3.3.0] - 2026-07-12
+
+### 新增
+- **原文链接自动提取**：`extract_original_url()` 函数从 Markdown 前 800 字符自动识别"原文链接"/"转载自"/"本文首发"等关键词
+- **IMA 路由精细化**：GitHub URL 改为纯文本笔记（IMA 抓取 HTML 页面效果差），不再走 import_urls
+- **飞书 wiki 自动路由函数**：`_is_feishu_wiki()` 和 `_fetch_feishu_wiki_via_webfetch()` 新增
+
+### 修复
+- **IMA 路由规则修正**：原文链接为 GitHub 时，原逻辑走 import_urls 导致 IMA 抓取 HTML 页面内容混乱。改为纯文本笔记存转录 MD
+- **路由规则文档化**：IMA 路由规则精细化（公众号/普通网页→import_urls；X/Twitter/飞书/GitHub→纯文本笔记）
+
 ## [3.2.0] - 2026-07-12
 
 ### 新增

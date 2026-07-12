@@ -3,16 +3,17 @@ name: web-to-FIM
 label: 网页内容转 Markdown/飞书/IMA
 slug: web-to-fim
 displayName: web-to-FIM
-version: 3.2.0
+version: 3.3.0
 summary: 将任意网页链接或本地文件一键转为结构化 Markdown，并三处存放到 Obsidian、飞书云文档、腾讯 IMA 知识库。
 license: MIT-0
 description: >
   将任意网页链接或本地文件一键转为结构化 Markdown，并三处存放到 Obsidian Vault、飞书云文档、腾讯 IMA 知识库。
   支持的信源：(1) X/Twitter 推文、长文 Article、Thread 线程（逐字转录）；(2) 微信公众号文章（带图片，IMA 服务端抓取保留排版）；
-  (3) 飞书 wiki 文档（WebFetch 全文转录）；(4) 小红书笔记；(5) 微博；(6) YouTube 视频；
+  (3) 飞书 wiki 文档（WebFetch 全文转录 + 原文链接优先转录）；(4) 小红书笔记；(5) 微博；(6) YouTube 视频；
   (7) 任意 HTML 网页（带图片，IMA 服务端抓取）；(8) 本地文件：PDF、Word、PPT、Excel、图片、音频等。
   三处存放：Obsidian（本地 Markdown+frontmatter+tags）+ 飞书云文档（团队协作）+ IMA 知识库（FIM知识库，AI 原生）。
-  IMA 智能路由：公众号/网页 → import_urls 保留图片；X/Twitter/飞书 → 纯文本笔记逐字转录。
+  IMA 智能路由：公众号/普通网页 → import_urls 保留图片；X/Twitter/飞书/GitHub → 纯文本笔记逐字转录。
+  飞书 wiki 原文链接优先转录：检查文章头部"原文链接"，有则优先抓取原文内容作为最终产物存三处，IMA 只存原文链接地址自动识别。
   批量模式支持断点恢复，Obsidian 写入失败自动 fallback。
   工作流：自动识别 URL/文件类型 → 路由到最佳抓取工具 → 结构化 Markdown → 三处存放。
   触发词：转文档、抓网页存飞书、网页转文档、web to feishu、url转文档、文件转飞书、存到ima、存到obsidian、web to fim、三处存放。

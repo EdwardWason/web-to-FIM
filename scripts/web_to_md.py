@@ -188,6 +188,42 @@ def _fetch_wechat_mobile(url: str) -> str:
         return ""
 
 
+def extract_original_url(markdown: str) -> str:
+    """从 Markdown 前 800 字符提取原文链接（v3.3.0）
+
+    飞书 wiki 转载文章通常在头部标注"原文链接"，本函数自动提取。
+
+    支持的格式：
+        原文链接：https://...
+        转载自：https://...
+        本文首发：https://...
+        本文转载自：https://...
+        🔗 https://...
+        🔗 原文链接：[https://...](https://...)
+
+    Returns:
+        URL 字符串，未找到返回 None
+    """
+    import re
+    if not markdown:
+        return None
+    head = markdown[:800]
+    # 匹配关键词后的 URL（支持 markdown 链接 [text](url) 和裸 URL）
+    patterns = [
+        r'原文链接[：:]\s*\[?[^\]]*\]?\(?(https?://[^\s\)]+)',
+        r'转载自[：:]\s*\[?[^\]]*\]?\(?(https?://[^\s\)]+)',
+        r'本文首发[：:]?\s*\[?[^\]]*\]?\(?(https?://[^\s\)]+)',
+        r'本文转载[自:：]?\s*\[?[^\]]*\]?\(?(https?://[^\s\)]+)',
+        r'🔗\s*\[?[^\]]*\]?\(?(https?://[^\s\)]+)',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, head)
+        if match:
+            url = match.group(1).rstrip(')').rstrip(']')
+            return url
+    return None
+
+
 def convert(url_or_path: str, output_path: str = None, replies: bool = False) -> str:
     source_type = _detect_source(url_or_path)
 
