@@ -3,7 +3,7 @@ name: web-to-FIM
 label: 网页内容转 Markdown/飞书/IMA
 slug: web-to-fim
 displayName: web-to-FIM
-version: 3.3.0
+version: 3.4.0
 summary: 将任意网页链接或本地文件一键转为结构化 Markdown，并三处存放到 Obsidian、飞书云文档、腾讯 IMA 知识库。
 license: MIT-0
 description: >
@@ -14,11 +14,12 @@ description: >
   三处存放：Obsidian（本地 Markdown+frontmatter+tags）+ 飞书云文档（团队协作）+ IMA 知识库（FIM知识库，AI 原生）。
   IMA 智能路由：公众号/普通网页 → import_urls 保留图片；X/Twitter/飞书/GitHub → 纯文本笔记逐字转录。
   飞书 wiki 原文链接优先转录：检查文章头部"原文链接"，有则优先抓取原文内容作为最终产物存三处，IMA 只存原文链接地址自动识别。
+  X 链接转录流程：飞书 wiki 中发现 X 原文链接时，用 x-tweet-fetcher 抓取完整长文（10K-15K 字符），失败时降级到飞书 wiki 内容。
   批量模式支持断点恢复，Obsidian 写入失败自动 fallback。
   工作流：自动识别 URL/文件类型 → 路由到最佳抓取工具 → 结构化 Markdown → 三处存放。
-  触发词：转文档、抓网页存飞书、网页转文档、web to feishu、url转文档、文件转飞书、存到ima、存到obsidian、web to fim、三处存放。
-  当用户提供任意 URL 或本地文件并要求转存为文档时触发。
-  Do NOT use for 创建文档内容、编辑飞书文档正文、代码开发、非文档转存任务。
+  触发词：抓网页存飞书、web to feishu、url转文档、文件转飞书、存到ima、存到obsidian、web to fim、三处存放。
+  当用户明确要求将 URL 或本地文件转存为文档并存储到 Obsidian/飞书/IMA 时触发。
+  Do NOT use for 创建文档内容、编辑飞书文档正文、代码开发、非文档转存任务、普通文档格式转换（非三处存放意图）。
 ---
 
 # Web-to-FIM | 网页内容转 Markdown/飞书/IMA
@@ -137,7 +138,13 @@ python3 scripts/web_to_md.py --url "<url_or_path>" --output <output.md>
 - **公众号**（`mp.weixin.qq.com`）→ markitdown 转换，反爬时自动 fallback 到移动端 UA
 - **其他网页/本地文件** → markitdown 直接转换
 
-> **v3.2.0 飞书 wiki 原文链接优先转录**：
+> **v3.4.0 X 链接转录流程修正**：
+> - 飞书 wiki 中发现 X 原文链接时，用 **x-tweet-fetcher**（`web_to_md.py`）抓取完整长文（10K-15K 字符）
+> - **不用 WebFetch**（对 X 链接超时失败率高）
+> - x-tweet-fetcher 失败时降级到飞书 wiki 内容（降级机制）
+> - 全文完整性验证：转录后检查内容长度，<500 字符时警告可能不完整
+
+> **v3.3.0 飞书 wiki 原文链接优先转录**：
 > - 抓取飞书 wiki 后，检查文章头部是否有"原文链接"（如 `🔗 原文链接：[url]`）
 > - 有原文链接 → 优先抓取原文链接内容（公众号/X 等），获得更完整的正文和图片
 > - 无原文链接 → 用飞书 wiki 内容
@@ -279,6 +286,36 @@ git clone https://github.com/EdwardWason/x-tweet-fetcher.git
 
 ## 安全声明
 
+### 🔒 权限声明（MCP Least Privilege）
+
+本技能运行时需要以下权限：
+
+| 权限类型 | 具体内容 | 用途 |
+|---------|---------|------|
+| **文件读取** | 用户指定的 URL、本地输入文件 | 转换源内容 |
+| **文件写入** | Obsidian Vault 目录（`OBSIDIAN_VAULT_PATH`）、临时 Markdown 文件 | 存储转换结果 |
+| **网络请求** | 用户提供的 URL（网页抓取）、飞书 OpenAPI、腾讯 IMA OpenAPI | 抓取内容和存储到云端 |
+| **环境变量** | `FEISHU_APP_ID`、`FEISHU_APP_SECRET`、`IMA_OPENAPI_CLIENTID`、`IMA_OPENAPI_APIKEY`、`OBSIDIAN_VAULT_PATH` | 凭证和路径配置 |
+| **subprocess** | x-tweet-fetcher（可选，仅 X/Twitter 链接） | X 平台内容抓取 |
+
+> ⚠️ 本技能**不读取** Windows registry、不读取 GitHub token、不调用 GitHub API、不执行 git 操作。仅做文档转换和三处存放。
+
+### ⚠️ 用户警告（运行前必读）
+
+1. **数据外传**：运行本技能会将您提供的 URL 或本地文件内容上传到以下第三方云端服务：
+   - **飞书云文档**（需 `FEISHU_APP_ID` + `FEISHU_APP_SECRET`）
+   - **腾讯 IMA 知识库**（需 `IMA_OPENAPI_CLIENTID` + `IMA_OPENAPI_APIKEY`）
+   - 如果内容包含敏感、机密或受监管数据，请先确认是否允许上传到这些服务
+
+2. **本地写入**：默认会向 Obsidian Vault 目录写入 Markdown 文件。可通过 `--no-obsidian` 禁用本地写入
+
+3. **选择性禁用**：支持通过参数禁用特定存储目的地：
+   - `--no-feishu`：跳过飞书云文档
+   - `--no-ima`：跳过腾讯 IMA
+   - `--no-obsidian`：跳过本地 Obsidian
+
+4. **IMA URL 导入**：公众号/普通网页 URL 会通过 IMA `import_urls` 让 IMA 服务端抓取，URL 会被发送给腾讯服务器
+
 ### 🔒 安全设计原则
 
 1. **凭证安全**
@@ -287,9 +324,9 @@ git clone https://github.com/EdwardWason/x-tweet-fetcher.git
    - 旧变量名 `IMA_CLIENT_ID`/`IMA_API_KEY` 仍兼容回退
 
 2. **文件操作**
-   - 仅在用户明确指定时写入文件
-   - Obsidian Vault 路径完全可控
-   - 支持通过 `--no-feishu` / `--no-ima` 选择性禁用功能
+   - 默认写入 Obsidian Vault 目录（可通过 `OBSIDIAN_VAULT_PATH` 配置）
+   - 支持通过 `--no-feishu` / `--no-ima` / `--no-obsidian` 选择性禁用功能
+   - 不扫描、不读取用户目录下的其他文件
 
 3. **隐私保护**
    - 不读取任何未经授权的用户配置文件

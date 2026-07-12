@@ -370,6 +370,33 @@ def _process_single(url: str, args) -> int:
         print(f"❌ Conversion failed: {e}", file=sys.stderr)
         return 1
 
+    # v3.4.0 全文完整性验证
+    if len(markdown) < 500:
+        print(f"⚠️ Warning: Content is short ({len(markdown)} chars), may be incomplete", file=sys.stderr)
+
+    # v3.4.0 飞书 wiki 原文链接优先转录
+    original_url = None
+    if _is_feishu_wiki(url):
+        original_url = extract_original_url(markdown)
+        if original_url:
+            print(f"🔗 Found original URL: {original_url}")
+            # 根据原文链接类型选择抓取工具
+            lower_orig = original_url.lower()
+            if "x.com" in lower_orig or "twitter.com" in lower_orig:
+                # X 链接：用 x-tweet-fetcher（convert_to_md 内部调用），不用 WebFetch
+                try:
+                    orig_markdown = convert_to_md(original_url)
+                    if len(orig_markdown) > len(markdown):
+                        print(f"✅ X original fetched: {len(orig_markdown)} chars (was {len(markdown)})")
+                        markdown = orig_markdown
+                    else:
+                        print(f"⚠️ X original shorter than feishu wiki, keeping feishu content")
+                except Exception as e:
+                    print(f"⚠️ X original fetch failed: {e}, using feishu wiki content (fallback)")
+            elif "mp.weixin.qq.com" in lower_orig or (lower_orig.startswith("http")):
+                # 公众号/普通网页：用 WebFetch 抓取（AI 流程中处理）
+                print(f"ℹ️ Web URL original detected, use WebFetch in AI flow: {original_url}")
+
     title = args.title
     if not title:
         lines = markdown.strip().split("\n")

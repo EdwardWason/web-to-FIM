@@ -2,6 +2,22 @@
 
 本文件记录 web-to-fim 技能的版本演进。版本号遵循 [语义化版本](https://semver.org/)。
 
+## [3.4.0] - 2026-07-12
+
+### 安全修复（ClawHub SkillSpector v3.3.0 findings）
+- **删除误上传的临时脚本**：`_gh_push.py` 和 `_gh_release.py`（v3.3.0 发布时误上传，含 GitHub token 读取和 API 调用，被标记为 MCP Tool Poisoning / Context-Inappropriate Capability）
+- **新增权限声明段落**：MCP Least Privilege — 明确声明文件读取/写入/网络请求/环境变量/subprocess 权限
+- **新增用户警告段落**：Missing User Warnings — 明确告知数据外传到飞书/IMA、本地写入、选择性禁用参数
+- **修正安全声明**：Intent-Code Divergence — 移除"仅在用户明确指定时写入文件"的错误描述，改为"默认写入 Obsidian Vault"
+- **触发词收窄**：Vague Triggers — 移除过于宽泛的"转文档"、"网页转文档"，改为更明确的"抓网页存飞书"、"web to feishu"等
+- **Do NOT 范围扩展**：新增"普通文档格式转换（非三处存放意图）"
+
+### 功能修复（X 链接转录流程）
+- **X 链接转录流程修正**：飞书 wiki 中发现 X 原文链接时，用 x-tweet-fetcher 抓取完整长文（10K-15K 字符），不用 WebFetch（超时失败率高）
+- **降级机制**：x-tweet-fetcher 失败时降级到飞书 wiki 内容
+- **全文完整性验证**：转录后检查内容长度，<500 字符时警告可能不完整
+- **内容长度对比**：X 原文内容比飞书 wiki 内容长时才替换，否则保留飞书 wiki 内容
+
 ## [3.3.0] - 2026-07-12
 
 ### 新增
