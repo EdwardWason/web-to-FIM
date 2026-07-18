@@ -25,8 +25,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from web_to_md import convert as convert_to_md
 from web_to_md import extract_original_url
-from feishu_client import FeishuClient
 from ima_client import IMAClient
+
+# v3.6.0: feishu_client.FeishuClient 已废弃，不再 import
+# 飞书存储改用 lark-cli drive +upload（用户身份上传 .md 原文件到云盘）
 
 
 def get_obsidian_vault_path() -> Path:
@@ -34,20 +36,20 @@ def get_obsidian_vault_path() -> Path:
     Get Obsidian Vault path from environment variable or use default.
     
     Environment variable: OBSIDIAN_VAULT_PATH
-    
+
     Defaults:
-    - Windows: E:\Obsidian\md\inbox
-    - macOS/Linux: ~/Obsidian/inbox
+    - Windows: E:\Obsidian-Vault\00-Inbox
+    - macOS/Linux: ~/Obsidian-Vault/00-Inbox
     """
     env_path = os.environ.get("OBSIDIAN_VAULT_PATH")
     if env_path:
         return Path(env_path).expanduser()
-    
+
     # Default paths by OS
     if sys.platform.startswith("win"):
-        return Path(r"E:\Obsidian\md\inbox")
+        return Path(r"E:\Obsidian-Vault\00-Inbox")
     else:
-        return Path.home() / "Obsidian" / "inbox"
+        return Path.home() / "Obsidian-Vault" / "00-Inbox"
 
 
 OBSIDIAN_VAULT = get_obsidian_vault_path()
@@ -83,24 +85,41 @@ def _extract_source_name(url: str) -> str:
         return "webpage"
 
 
-def save_to_obsidian(content: str, title: str, url: str = None) -> str:
-    """Save Markdown to Obsidian Vault"""
+def save_to_obsidian(content: str, title: str, url: str = None, keywords: str = None) -> str:
+    """Save Markdown to Obsidian Vault
+
+    文件名规则（v3.5.0）：YYYYMMDD-标题-关键信息.md
+    - 关键信息：2-4 个关键词，用顿号"、"分隔（如 "数字人、口播、heygen"）
+    - 由调用方（AI）从标题和内容提取
+    - 未提供 keywords 时 fallback 到来源（waytoagi/wechat/x/github）
+    """
     vault_path = Path(OBSIDIAN_VAULT)
     vault_path.mkdir(parents=True, exist_ok=True)
 
-    # 文件名规则：YYYYMMDD-标题-来源.md（v3.2.0）
     import re
     date_str = datetime.now().strftime("%Y%m%d")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # 保留用于 fallback
     source = _extract_source_name(url)
-    # Windows 禁止字符替换为下划线，中文标点（含：）保留
+    # Windows 禁止字符替换为下划线，中文标点（含：、）保留
     safe_title = re.sub(r'[\\/:*?"<>|]', '_', title).strip()
     safe_title = re.sub(r'_+', '_', safe_title).strip("_ ").strip()
     safe_title = safe_title.rstrip(".")
     # 限制标题长度，避免文件名过长
     if len(safe_title) > 60:
         safe_title = safe_title[:60].strip("_ ").strip()
-    filename = f"{date_str}-{safe_title}-{source}.md"
+
+    # v3.5.0: 关键信息优先，fallback 到来源
+    if keywords and keywords.strip():
+        # 清理关键词：去掉 Windows 禁止字符，保留顿号"、"和英文逗号
+        safe_kw = re.sub(r'[\\/:*?"<>|]', '_', keywords).strip()
+        safe_kw = safe_kw.strip("_ ").strip()
+        # 长度限制：关键词部分 ≤ 40 字符
+        if len(safe_kw) > 40:
+            safe_kw = safe_kw[:40].strip("_ ").strip()
+        suffix = safe_kw
+    else:
+        suffix = source
+    filename = f"{date_str}-{safe_title}-{suffix}.md"
     filepath = vault_path / filename
 
     frontmatter = []
@@ -163,16 +182,92 @@ def save_to_obsidian(content: str, title: str, url: str = None) -> str:
     return str(filepath)
 
 
-def save_to_feishu(content: str, title: str) -> dict:
-    """Save to Feishu Cloud Document"""
+def save_to_feishu(md_file_path: str, title: str = None) -> dict:
+    """Save to Feishu Cloud Drive via lark-cli (v3.6.0)
+
+    上传 .md 原文件到用户飞书云盘根目录。
+    用户在飞书"我的空间 > 云盘"立即可见。
+
+    v3.6.0 变更：
+    - 从 FeishuClient.create_document（tenant_access_token，应用身份，用户不可见）
+      改为 lark-cli drive +upload（user_access_token，用户身份，立即可见）
+    - 旧 feishu_client.py 标记为废弃
+
+    Args:
+        md_file_path: 本地 .md 文件路径（通常是 Obsidian 保存后的路径）
+        title: 文档标题（用于云盘中的文件名，可选；未提供时用原文件名）
+
+    Returns:
+        dict: {"url": ..., "file_token": ..., "file_name": ...}
+
+    Raises:
+        FileNotFoundError: md_file_path 不存在
+        RuntimeError: lark-cli 未安装/未登录/上传失败
+    """
+    import shutil
+    import subprocess
+
+    src = Path(md_file_path).resolve()
+    if not src.exists():
+        raise FileNotFoundError(f"MD file not found: {src}")
+
+    # lark-cli --file 必须是 cwd 下的相对路径，复制到 scripts 目录
+    scripts_dir = Path(__file__).parent
+    if title:
+        import re
+        safe_title = re.sub(r'[\\/:*?"<>|]', '_', title).strip().rstrip(".")
+        if len(safe_title) > 80:
+            safe_title = safe_title[:80].strip()
+        upload_name = f"{safe_title}.md"
+    else:
+        upload_name = src.name
+
+    tmp_path = scripts_dir / upload_name
+    shutil.copy2(src, tmp_path)
+
     try:
-        client = FeishuClient()
-        result = client.create_document(title=title, content_md=content)
-        print(f"✅ Feishu: {result.get('url', 'N/A')}")
-        return result
-    except Exception as e:
-        print(f"⚠️ Feishu failed: {e}", file=sys.stderr)
-        return None
+        lark_cli = shutil.which("lark-cli")
+        if not lark_cli:
+            raise RuntimeError("lark-cli not found in PATH. Install via npm i -g @larksuiteoapi/lark-cli and run lark-cli auth login.")
+
+        result = subprocess.run(
+            [lark_cli, "drive", "+upload", "--file", f"./{upload_name}", "--name", upload_name],
+            capture_output=True,
+            text=True,
+            cwd=str(scripts_dir),
+            timeout=60,
+            encoding="utf-8",
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"lark-cli exit {result.returncode}: {result.stderr.strip() or result.stdout.strip()}")
+
+        # 输出包含一行 "Uploading: ..." 和多行 JSON，提取从第一个 { 到最后一个 } 的内容
+        stdout = result.stdout
+        start = stdout.find("{")
+        end = stdout.rfind("}")
+        if start == -1 or end == -1 or end < start:
+            raise RuntimeError(f"lark-cli output missing JSON: {stdout}")
+
+        json_str = stdout[start:end + 1]
+        data = json.loads(json_str)
+        if not data.get("ok"):
+            err = data.get("error", {}).get("message", "unknown")
+            raise RuntimeError(f"lark-cli upload failed: {err}")
+
+        file_data = data.get("data", {})
+        url = file_data.get("url", "N/A")
+        print(f"✅ Feishu (Drive): {url}")
+        return {
+            "url": url,
+            "file_token": file_data.get("file_token", ""),
+            "file_name": file_data.get("file_name", upload_name),
+        }
+    finally:
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except Exception:
+                pass
 
 
 def save_to_ima(content: str, title: str, knowledge_base: str = None, source_url: str = None) -> dict:
@@ -311,6 +406,7 @@ def main():
     parser.add_argument("--url", help="URL or local file path to convert")
     parser.add_argument("--urls-file", help="File containing one URL per line (batch mode)")
     parser.add_argument("--title", help="Custom title for the document")
+    parser.add_argument("--keywords", help="关键信息（2-4 个关键词用顿号分隔，如 '数字人、口播、heygen'），未指定时 fallback 到来源")
     parser.add_argument("--no-feishu", action="store_true", help="Skip Feishu")
     parser.add_argument("--no-ima", action="store_true", help="Skip IMA")
     parser.add_argument("--no-obsidian", action="store_true", help="Skip Obsidian")
@@ -374,16 +470,17 @@ def _process_single(url: str, args) -> int:
     if len(markdown) < 500:
         print(f"⚠️ Warning: Content is short ({len(markdown)} chars), may be incomplete", file=sys.stderr)
 
-    # v3.4.0 飞书 wiki 原文链接优先转录
+    # v3.7.0 飞书 wiki 原文链接优先转录
+    # v3.7.0: 飞书 wiki 内容已通过 lark-cli docs +fetch 完整获取（不再依赖 WebFetch）
+    # 检测到原文链接时，尝试用 markitdown 或 x-tweet-fetcher 抓取原文，更长则覆盖
     original_url = None
     if _is_feishu_wiki(url):
         original_url = extract_original_url(markdown)
         if original_url:
             print(f"🔗 Found original URL: {original_url}")
-            # 根据原文链接类型选择抓取工具
             lower_orig = original_url.lower()
+            # X / Twitter 原文：x-tweet-fetcher（convert_to_md 内部调用）
             if "x.com" in lower_orig or "twitter.com" in lower_orig:
-                # X 链接：用 x-tweet-fetcher（convert_to_md 内部调用），不用 WebFetch
                 try:
                     orig_markdown = convert_to_md(original_url)
                     if len(orig_markdown) > len(markdown):
@@ -393,9 +490,17 @@ def _process_single(url: str, args) -> int:
                         print(f"⚠️ X original shorter than feishu wiki, keeping feishu content")
                 except Exception as e:
                     print(f"⚠️ X original fetch failed: {e}, using feishu wiki content (fallback)")
-            elif "mp.weixin.qq.com" in lower_orig or (lower_orig.startswith("http")):
-                # 公众号/普通网页：用 WebFetch 抓取（AI 流程中处理）
-                print(f"ℹ️ Web URL original detected, use WebFetch in AI flow: {original_url}")
+            # 公众号/普通网页原文：用 markitdown 转换（v3.7.0 改为自动抓取）
+            elif "mp.weixin.qq.com" in lower_orig or lower_orig.startswith("http"):
+                try:
+                    orig_markdown = convert_to_md(original_url)
+                    if len(orig_markdown) > len(markdown):
+                        print(f"✅ Web original fetched: {len(orig_markdown)} chars (was {len(markdown)})")
+                        markdown = orig_markdown
+                    else:
+                        print(f"⚠️ Web original shorter than feishu wiki, keeping feishu content")
+                except Exception as e:
+                    print(f"⚠️ Web original fetch failed: {e}, using feishu wiki content (fallback)")
 
     title = args.title
     if not title:
@@ -433,15 +538,19 @@ def _process_single(url: str, args) -> int:
 
     if not args.no_obsidian:
         try:
-            results["obsidian"] = save_to_obsidian(markdown, title, url)
+            results["obsidian"] = save_to_obsidian(markdown, title, url, keywords=args.keywords)
         except Exception as e:
             print(f"⚠️ Obsidian failed: {e}", file=sys.stderr)
 
-    if not args.no_feishu:
+    # v3.6.0: 飞书改为上传 .md 文件到云盘，复用 Obsidian 保存的文件路径
+    # 若 Obsidian 失败，则跳过飞书（需要源文件）
+    if not args.no_feishu and results.get("obsidian"):
         try:
-            results["feishu"] = save_to_feishu(markdown, title)
+            results["feishu"] = save_to_feishu(results["obsidian"], title)
         except Exception as e:
             print(f"⚠️ Feishu failed: {e}", file=sys.stderr)
+    elif not args.no_feishu and not results.get("obsidian"):
+        print(f"⚠️ Feishu skipped: Obsidian file not available (required as upload source)", file=sys.stderr)
 
     if not args.no_ima:
         try:

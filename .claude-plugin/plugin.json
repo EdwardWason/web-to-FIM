@@ -1,6 +1,6 @@
 {
   "name": "web-to-fim",
-  "version": "3.1.0",
+  "version": "3.7.0",
   "description": "将任意网页链接或本地文件一键转为结构化 Markdown，并三处存放到 Obsidian、飞书云文档、腾讯 IMA 知识库。",
   "author": "EdwardWason"
 }

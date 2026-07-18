@@ -5,6 +5,7 @@ Web Content → Structured Markdown Converter (Unified Entry)
 Auto-detects URL type and routes to the appropriate converter:
   - x.com / twitter.com → x-tweet-fetcher + tweet_to_md.py
   - mp.weixin.qq.com    → markitdown (WeChat plugin)
+  - *.feishu.cn/wiki/   → lark-cli docs +fetch (v3.7.0 优先，WebFetch 截断严重)
   - xiaohongshu.com     → markitdown (Xiaohongshu plugin)
   - weibo.com           → markitdown (generic)
   - youtube.com         → markitdown (YouTube support)
@@ -18,7 +19,10 @@ Usage:
 """
 
 import argparse
+import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -46,6 +50,9 @@ def _detect_source(url_or_path: str) -> str:
         return "twitter"
     if "mp.weixin.qq.com" in lower:
         return "wechat"
+    # v3.7.0: 飞书 wiki 优先用 lark-cli docs +fetch（WebFetch 截断严重）
+    if "feishu.cn/wiki" in lower or "larkoffice.com/wiki" in lower:
+        return "feishu_wiki"
     if "weibo.com" in lower:
         return "weibo"
     if "xiaohongshu.com" in lower or "xhslink.com" in lower:
@@ -124,6 +131,69 @@ def _convert_markitdown(url_or_path: str, output_path: str = None) -> str:
         out.parent.mkdir(parents=True, exist_ok=True)
         with open(out, 'w', encoding='utf-8') as f:
             f.write(content)
+        print(f"✅ Markdown saved: {out} ({len(content)} chars)", file=sys.stderr)
+
+    return content
+
+
+def _convert_feishu_wiki(url: str, output_path: str = None) -> str:
+    """飞书 wiki 转换器（v3.7.0 新增）
+
+    优先用 lark-cli docs +fetch 抓取完整内容（用户身份认证，可读取全文）。
+    WebFetch 对飞书 wiki 抓取不稳定，常返回 200-1000 字符截断内容（实测 33 篇文章中 19 篇被截断）。
+
+    Args:
+        url: 飞书 wiki URL（如 https://waytoagi.feishu.cn/wiki/xxxxx）
+        output_path: 可选，输出文件路径
+
+    Returns:
+        飞书 wiki 的 Markdown 内容（含原文链接行）
+    """
+    lark_cli = shutil.which("lark-cli") or r"C:\Users\Administrator\AppData\Roaming\npm\lark-cli.cmd"
+    if not Path(lark_cli).exists() and shutil.which("lark-cli") is None:
+        raise RuntimeError(
+            "lark-cli 未安装。请运行：npm i -g @larksuiteoapi/lark-cli && lark-cli auth login"
+        )
+
+    cmd = [
+        lark_cli, "docs", "+fetch",
+        "--doc", url,
+        "--doc-format", "markdown",
+        "--scope", "full",
+        "--format", "json",
+    ]
+    print(f"📡 Fetching feishu wiki via lark-cli: {url}", file=sys.stderr)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=60)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("lark-cli 超时（60秒）")
+
+    if result.returncode != 0:
+        raise RuntimeError(f"lark-cli 调用失败: {result.stderr[:500]}")
+
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"lark-cli 输出 JSON 解析失败: {e}")
+
+    if not data.get("ok"):
+        err = data.get("error", {})
+        raise RuntimeError(f"lark-cli API 返回 ok=false: {err}")
+
+    content = data.get("data", {}).get("document", {}).get("content", "")
+    if not content:
+        raise RuntimeError("lark-cli 返回空内容")
+
+    print(f"✅ Fetched {len(content)} chars from feishu wiki", file=sys.stderr)
+
+    # 完整性验证：内容过短时警告（可能是空 wiki 或权限不足）
+    if len(content) < 500:
+        print(f"⚠️ Warning: feishu wiki content is short ({len(content)} chars)", file=sys.stderr)
+
+    if output_path:
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(content, encoding="utf-8")
         print(f"✅ Markdown saved: {out} ({len(content)} chars)", file=sys.stderr)
 
     return content
@@ -231,6 +301,9 @@ def convert(url_or_path: str, output_path: str = None, replies: bool = False) ->
 
     if source_type == "twitter":
         return _convert_twitter(url_or_path, output_path, replies)
+    elif source_type == "feishu_wiki":
+        # v3.7.0: 飞书 wiki 优先用 lark-cli docs +fetch（WebFetch 截断严重）
+        return _convert_feishu_wiki(url_or_path, output_path)
     else:
         return _convert_markitdown(url_or_path, output_path)
 

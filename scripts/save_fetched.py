@@ -35,6 +35,7 @@ def main():
         title = article["title"]
         feishu_url = article.get("feishu_url", "")
         original_url = article.get("original_url")
+        keywords = article.get("keywords")  # v3.5.0: 关键信息
 
         # 获取内容：优先 source_file，其次 content
         if article.get("source_file"):
@@ -47,28 +48,34 @@ def main():
         print(f"[{i}/{len(articles)}] {title}")
         print(f"Feishu URL: {feishu_url}")
         print(f"Original URL: {original_url or 'N/A'}")
+        print(f"Keywords: {keywords or '(fallback to source)'}")
         print(f"Content: {len(content)} chars")
         print(f"{'='*60}")
 
         result = {"title": title, "feishu_url": feishu_url}
 
         # 1. Obsidian — 用 feishu_url（文件名来源 = waytoagi）
+        obs_path = None
         if not args.no_obsidian:
             try:
-                obs_path = save_to_obsidian(content, title, feishu_url)
+                obs_path = save_to_obsidian(content, title, feishu_url, keywords=keywords)
                 result["obsidian"] = obs_path
             except Exception as e:
                 print(f"⚠️ Obsidian failed: {e}", file=sys.stderr)
                 result["obsidian"] = f"FAILED: {e}"
 
-        # 2. Feishu
+        # 2. Feishu — v3.6.0: 上传 .md 文件到云盘，复用 Obsidian 文件路径
         if not args.no_feishu:
-            try:
-                feishu_result = save_to_feishu(content, title)
-                result["feishu"] = feishu_result.get("url", "N/A") if feishu_result else "FAILED"
-            except Exception as e:
-                print(f"⚠️ Feishu failed: {e}", file=sys.stderr)
-                result["feishu"] = f"FAILED: {e}"
+            if obs_path and not str(obs_path).startswith("FAILED"):
+                try:
+                    feishu_result = save_to_feishu(obs_path, title)
+                    result["feishu"] = feishu_result.get("url", "N/A") if feishu_result else "FAILED"
+                except Exception as e:
+                    print(f"⚠️ Feishu failed: {e}", file=sys.stderr)
+                    result["feishu"] = f"FAILED: {e}"
+            else:
+                print(f"⚠️ Feishu skipped: Obsidian file not available (required as upload source)", file=sys.stderr)
+                result["feishu"] = "SKIPPED (no source file)"
 
         # 3. IMA — 用 original_url（如果有公众号原文，走 import_urls）
         if not args.no_ima:

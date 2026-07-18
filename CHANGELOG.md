@@ -2,6 +2,82 @@
 
 本文件记录 web-to-fim 技能的版本演进。版本号遵循 [语义化版本](https://semver.org/)。
 
+## [3.7.0] - 2026-07-18
+
+### 🚨 破坏性变更（飞书 wiki 抓取方式改造）
+
+**问题根因**：v3.6.0 及更早版本抓取飞书 wiki（`*.feishu.cn/wiki/`）内容时使用 WebFetch，但 WebFetch 对飞书 wiki 页面抓取不稳定，常返回 200-1000 字符截断内容（完整文章应有 3K-25K 字符）。
+
+**实测数据**：第十批 33 篇飞书 wiki 文章批量转录任务中，19 篇被 WebFetch 截断，导致飞书云盘上保存的 .md 文件内容大量丢失，用户反馈"多个文件都只转录了一小点，很多文章都没有转录完成"。
+
+**修复方案**：飞书 wiki 抓取改用 `lark-cli docs +fetch --doc <url> --doc-format markdown --scope full` 获取完整内容。lark-cli 通过用户身份认证，直接调用飞书 OpenAPI 读取结构化文档内容，无 JS 渲染或登录认证问题。实测 33 篇文章全部完整获取（800-24000 字符，部分短文如活动公告本身即短）。
+
+### 变更
+- **`web_to_md.py` 新增 `_convert_feishu_wiki()` 函数**：调用 lark-cli docs +fetch 获取飞书 wiki 完整 Markdown 内容
+- **`_detect_source()` 新增 `feishu_wiki` source 类型**：识别 `feishu.cn/wiki` 和 `larkoffice.com/wiki` URL
+- **`convert()` 函数新增 feishu_wiki 分支**：自动路由到 `_convert_feishu_wiki()`
+- **`web_to_all.py` `_process_single()` 飞书 wiki 原文链接优先转录流程更新**：
+  - 飞书 wiki 内容已通过 lark-cli 完整获取（不再依赖 WebFetch）
+  - 检测到原文链接时，自动用 markitdown 或 x-tweet-fetcher 抓取原文
+  - 原文比飞书 wiki 内容长则覆盖，否则保留飞书 wiki 内容
+  - 公众号/普通网页原文：v3.7.0 改为自动 markitdown 抓取（v3.6.0 是仅打印提示让 AI 调用 WebFetch）
+
+### 弃用
+- **WebFetch 抓取飞书 wiki**：v3.7.0 起弃用。`_fetch_feishu_wiki_via_webfetch()` 保留但不再调用，仅作历史参考。AI 流程中遇到飞书 wiki URL 不应再调用 WebFetch，应让 `web_to_md.py convert()` 自动路由到 lark-cli。
+
+### 验证
+- ✅ 第十批 33 篇飞书 wiki 文章全部完整转录（v3.6.0 时 19 篇截断）
+- ✅ 飞书云盘 33 个 .md 文件内容完整（抽查 5 篇 19007/24247/1080/17160/10010 字符）
+- ✅ Obsidian `E:\Obsidian-Vault\00-Inbox\` 33 个 20260718-*.md 文件全部完整
+- ✅ lark-cli docs +fetch 对各种长度飞书 wiki 都稳定（最短 793 字符，最长 23931 字符）
+
+## [3.6.0] - 2026-07-18
+
+### 🚨 破坏性变更（飞书存储方式改造）
+
+**问题根因**：v3.5.0 及更早版本飞书存储用 `FeishuClient.create_document` 创建在线 docx，使用应用身份（tenant_access_token），文档归属应用而非用户。用户反馈"这几天转换的文档一篇都没有看到"——文档创建成功但用户在飞书"我的空间"完全不可见。
+
+**修复方案**：飞书存储改用 `lark-cli drive +upload` 上传 .md 原文件到用户云盘根目录（用户身份，user_access_token），文件归属于用户，立即可见。参考 transcript-crafter 技能的存放方式。
+
+### 变更
+- **`save_to_feishu()` 函数签名变更**：`(content: str, title: str)` → `(md_file_path: str, title: str = None)`
+  - 不再接收 markdown content，改为接收本地 .md 文件路径
+  - 飞书上传依赖 Obsidian 保存的 .md 文件作为源
+- **`web_to_all.py` 不再 import `FeishuClient`**：避免触发 deprecation warning
+- **`_process_single()` 调用顺序变更**：先存 Obsidian 得到文件路径，再上传飞书。Obsidian 失败时飞书自动跳过（提示 `Feishu skipped: Obsidian file not available`）
+- **`save_fetched.py` 调用变更**：传 `obs_path` 给 `save_to_feishu()`，不再传 content
+- **`feishu_client.py` 标记为废弃**：保留供历史参考，主流程不再调用。导入时触发 `DeprecationWarning`
+
+### 新增
+- **lark-cli 依赖**：飞书存储改为依赖 `lark-cli`（npm 全局包），需预先 `lark-cli auth login` 用户授权
+- **临时文件复制机制**：lark-cli `--file` 限制必须是 cwd 下相对路径，代码会自动把 Obsidian .md 文件复制到 scripts 目录上传，上传后立即删除
+- **JSON 输出解析**：lark-cli 输出多行 JSON（含 `Uploading:` 提示行），用 `find('{')` 到 `rfind('}')` 提取完整 JSON 段
+
+### 废弃
+- **`FEISHU_APP_ID` / `FEISHU_APP_SECRET` 环境变量**：不再使用，飞书凭证由 lark-cli 管理
+- **`feishu_client.py`**：保留但已废弃，详见文件头 DEPRECATED 注释
+
+### 验证
+- ✅ 测试上传成功：文件 URL `https://aipeanut.feishu.cn/file/ZZ4ibHqj2obC4wxzxNgcY5znnPf`
+- ✅ 文件归属用户身份，飞书"我的空间 > 云盘"立即可见
+- ✅ Obsidian 失败时飞书正确跳过，不影响其他存储
+
+## [3.5.0] - 2026-07-18
+
+### 新增
+- **Obsidian 文件命名升级**：从 `YYYYMMDD-标题-来源.md` 升级为 `YYYYMMDD-标题-关键信息.md`
+  - 关键信息由 AI 从标题和内容提取 2-4 个关键词，用顿号"、"分隔
+  - 示例：`20260718-数字人口播实战攻略-数字人、口播、heygen.md`
+  - 未提供 keywords 时 fallback 到来源（waytoagi/wechat/x/github）
+- **CLI 新增 `--keywords` 参数**：`python web_to_all.py --url <url> --keywords "数字人、口播、heygen"`
+- **`save_fetched.py` JSON 配置新增 `keywords` 字段**：批量模式支持每篇文章独立关键词
+- **`save_to_obsidian()` 新增 `keywords` 参数**：编程接口支持
+- **默认 Obsidian Vault 路径变更**：`E:\Obsidian\md\inbox` → `E:\Obsidian\md\00-Inbox`（与 Obsidian Vault 结构对齐）
+
+### 兼容性
+- 未传 `keywords` 参数时 fallback 到原"来源"逻辑，向后兼容
+- 已存在的旧命名文件不强制改名（遵循 NAMING-CONVENTIONS.md "已存在的文件不强制改名"原则）
+
 ## [3.4.0] - 2026-07-12
 
 ### 安全修复（ClawHub SkillSpector v3.3.0 findings）

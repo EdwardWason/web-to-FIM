@@ -2,16 +2,44 @@
 """
 Feishu (Lark) Cloud Document API Client
 
-安全说明:
+⚠️ DEPRECATED (v3.6.0, 2026-07-18) ⚠️
+=========================================
+
+本模块已废弃，web-to-fim 主流程不再调用。
+
+废弃原因：
+- 旧版本用 tenant_access_token（应用身份）创建在线 docx 文档
+- 文档归属应用而非用户，用户在飞书"我的空间"看不到
+- 用户反馈"这几天转换的文档一篇都没有看到"
+
+替代方案（v3.6.0）：
+- 飞书存储改用 `lark-cli drive +upload` 上传 .md 原文件到用户云盘
+- 文件归属用户身份，立即可见
+- 详见 `web_to_all.py` 中的 `save_to_feishu()` 函数
+
+本文件保留供历史参考，请勿在新代码中使用。
+
+=========================================
+
+历史安全说明:
 - 所有凭证通过环境变量读取，不硬编码
 - 支持 .env 文件加载（需 python-dotenv）
 - 凭证不写入日志或任何输出
 
-Usage:
+历史 Usage:
     from feishu_client import FeishuClient
     client = FeishuClient()
     doc_id = client.create_document(title="我的笔记", content_md="# Hello")
 """
+
+import warnings
+warnings.warn(
+    "feishu_client.py is deprecated since v3.6.0. "
+    "Use web_to_all.save_to_feishu() (lark-cli drive +upload) instead. "
+    "See SKILL.md for migration guide.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 import os
 import json

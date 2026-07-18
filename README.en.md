@@ -48,7 +48,7 @@ python3 scripts/web_to_all.py --url "<url>" --no-feishu --no-ima
 
 ```bash
 # Obsidian Vault path (optional, has default)
-export OBSIDIAN_VAULT_PATH=~/Obsidian/Vault/inbox
+export OBSIDIAN_VAULT_PATH=~/Obsidian-Vault/00-Inbox
 
 # Feishu credentials
 export FEISHU_APP_ID="your_app_id"

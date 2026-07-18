@@ -1,34 +1,18 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+# ClawHub publish 不读 .gitignore，必须用 .clawhubignore 显式排除
+# 详见 https://github.com/openclaw/clawhub/blob/main/docs/skill-format.md
 
-# Environment
+# 凭证文件（绝对禁止发布）
 .env
 .env.local
 *.env
+credentials.json
+*.key
+*.pem
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Temporary
-*.tmp
-*.bak
-test_urls.txt
-batch_urls.txt
-test_single_url.txt
-test_two_urls.txt
-*.progress.json
-saved/
-batch_run.log
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
 
 # 临时转录任务数据（批量任务产物，非 skill 本身）
 scripts/batch_15/
@@ -67,3 +51,18 @@ scripts/*.log
 # ClawHub 自动生成
 .clawhub/
 skill-card.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 临时
+*.tmp
+*.bak
+saved/

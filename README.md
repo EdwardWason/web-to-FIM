@@ -12,7 +12,7 @@
 |------|---------|---------|
 | X/Twitter | `x.com` / `twitter.com` | x-tweet-fetcher（逐字转录） |
 | 微信公众号 | `mp.weixin.qq.com` | markitdown + 移动端 UA fallback |
-| 飞书 wiki | `*.feishu.cn/wiki/` | WebFetch 全文转录 |
+| 飞书 wiki | `*.feishu.cn/wiki/` | **lark-cli docs +fetch**（v3.7.0，完整内容） |
 | 小红书 | `xiaohongshu.com` / `xhslink.com` | markitdown |
 | 微博 | `weibo.com` | markitdown |
 | YouTube | `youtube.com` / `youtu.be` | markitdown |
@@ -24,7 +24,7 @@
 
 | 目的地 | 环境变量 | 说明 |
 |--------|---------|------|
-| Obsidian Vault | `OBSIDIAN_VAULT_PATH` | 本地 Markdown + frontmatter + tags |
+| Obsidian Vault | `OBSIDIAN_VAULT_PATH` | 本地 Markdown + frontmatter + tags（默认 `E:\Obsidian-Vault\00-Inbox`） |
 | 飞书云文档 | `FEISHU_APP_ID` + `FEISHU_APP_SECRET` | 云端团队协作 |
 | 腾讯 IMA | `IMA_OPENAPI_CLIENTID` + `IMA_OPENAPI_APIKEY` | AI 原生知识库（FIM知识库） |
 
@@ -48,7 +48,7 @@ python3 scripts/web_to_all.py --url "<url>" --no-feishu --no-ima
 
 ```bash
 # Obsidian Vault path (optional, has default)
-$env:OBSIDIAN_VAULT_PATH = "C:\Users\YourName\Obsidian\Vault\inbox"
+$env:OBSIDIAN_VAULT_PATH = "E:\Obsidian-Vault\00-Inbox"
 
 # Feishu credentials
 $env:FEISHU_APP_ID = "your_app_id"
@@ -109,6 +109,12 @@ python scripts/ima_client.py --action test
 
 ## 版本历史
 
+- **v3.7.0**：飞书 wiki 抓取改造——从 WebFetch（截断严重，200-1000 字符）改为 `lark-cli docs +fetch`（完整内容，3K-25K 字符）；实测 33 篇文章全部完整获取
+- **v3.6.0**：飞书存储改造——从应用身份创建在线 docx 改为 `lark-cli drive +upload` 上传 .md 原文件到用户云盘，立即可见
+- **v3.5.0**：Obsidian 文件命名升级为 `YYYYMMDD-标题-关键信息.md`（AI 提取 2-4 个关键词）
+- **v3.4.0**：X 链接转录流程修正——用 x-tweet-fetcher 替代 WebFetch；安全修复（ClawHub SkillSpector v3.3.0 findings）
+- **v3.3.0**：原文链接自动提取；IMA 路由精细化；飞书 wiki 自动路由函数
+- **v3.2.0**：Obsidian 文件命名规范化；飞书 wiki 原文链接优先转录；Windows 文件名安全
 - **v3.1.0**：批量模式断点恢复；Obsidian frontmatter 自动 tags；推文结构化转换通用化；subprocess 120 秒 timeout；公众号正文提取改进
 - **v3.0.0**：IMA 改用知识库两步流程；公众号/网页带图片转录（import_urls）；新增飞书 wiki 信源；公众号反爬 fallback
 - **v2.x**：基础三处存放功能；X/Twitter 逐字转录；飞书云文档集成
